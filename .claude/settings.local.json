@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr -i \"google\")",
+      "Bash(./gradlew.bat :app:compileDebugKotlin)",
+      "Bash(findstr /R \"error: warning:\")",
+      "Bash(Select-String -Pattern \"error|FAILED|BUILD\")",
+      "Bash(Select-Object -First 40)",
+      "Bash(find . -name \"SettingsDataStore.kt\" -o -name \"AppSettings*\")",
+      "Bash(ls data/datastore)",
+      "Bash(grep -rn \"import.*\\\\.\\\\\\(Coral\\\\|DeepPlum\\\\|InkSoft\\\\|AppGradient\\\\|DarkCoral\\\\|Peach\\\\|Lilac\\\\|Periwinkle\\\\\\)$\" ui)",
+      "Bash(python -c \"import json; d=json.load\\(open\\('google-services.json'\\)\\); c=d['client'][0]; print\\('package:', c['client_info']['android_client_info']['package_name']\\); print\\('oauth_clients:'\\); [print\\('  type', o.get\\('client_type'\\), o.get\\('client_id',''\\)[:60]\\) for o in c.get\\('oauth_client',[]\\)]; print\\('services:', list\\(d.get\\('client',[{}]\\)[0].keys\\(\\)\\)\\)\")"
+    ]
+  }
+}

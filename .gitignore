@@ -1,0 +1,22 @@
+# ── Android / Gradle 產出物 ──────────────────────────────
+*.iml
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# ── IDE ───────────────────────────────────────────────
+.idea/
+*.iws
+.DS_Store
+
+# ── 編譯產物 ───────────────────────────────────────────
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ── 機密：Firebase Service Account 私鑰，切勿提交 ──────────
+**/FcmSecrets.kt

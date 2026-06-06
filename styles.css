@@ -1,0 +1,109 @@
+/* ── Social Alarm App ───────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-1: #FFD3B5;     /* peach */
+  --bg-2: #E8B7E0;     /* lilac */
+  --bg-3: #A7B7E8;     /* periwinkle */
+  --ink: #3B2A4A;      /* deep plum ink */
+  --ink-soft: #6B5A78;
+  --coral: #FF8A6B;
+  --mint: #7FD3B5;
+  --sunny: #FFC857;
+}
+
+* { -webkit-font-smoothing: antialiased; }
+
+.font-display { font-family: 'Quicksand', system-ui, sans-serif; letter-spacing: -0.01em; }
+.font-body { font-family: 'Nunito', system-ui, sans-serif; }
+
+.app-bg {
+  background:
+    radial-gradient(120% 80% at 20% 10%, #FFE3CB 0%, transparent 55%),
+    radial-gradient(110% 90% at 90% 20%, #F3C9EE 0%, transparent 60%),
+    radial-gradient(120% 110% at 50% 100%, #B9C6EF 0%, transparent 60%),
+    linear-gradient(180deg, #FFD9C2 0%, #E8B7E0 45%, #A7B7E8 100%);
+}
+
+.app-bg-night {
+  background:
+    radial-gradient(110% 70% at 80% 10%, #4A3A6B 0%, transparent 55%),
+    radial-gradient(120% 90% at 20% 30%, #2E2845 0%, transparent 60%),
+    linear-gradient(180deg, #2A2240 0%, #1B1730 60%, #14112A 100%);
+}
+
+/* ── Glassmorphism ─────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.32);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.45);
+  box-shadow: 0 8px 24px rgba(59,42,74,0.10), inset 0 1px 0 rgba(255,255,255,0.55);
+}
+.glass-strong {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 10px 30px rgba(59,42,74,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+}
+.glass-soft {
+  background: rgba(255,255,255,0.22);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.35);
+}
+.glass-dark {
+  background: rgba(40,28,60,0.35);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* ── Misc ──────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* drift animation for clouds/stars */
+@keyframes drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.drift { animation: drift 6s ease-in-out infinite; }
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.twinkle { animation: twinkle 2.4s ease-in-out infinite; }
+
+@keyframes shake {
+  0%, 100% { transform: translate(0,0) rotate(0); }
+  25% { transform: translate(-2px, -1px) rotate(-2deg); }
+  50% { transform: translate(2px, 1px) rotate(2deg); }
+  75% { transform: translate(-1px, 2px) rotate(-1deg); }
+}
+.shake { animation: shake 0.4s ease-in-out infinite; }
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* fade-in for screen transitions */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slideUp 0.28s ease-out both; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scaleIn 0.2s ease-out both; }
+
+/* placeholder striping */
+.stripe-placeholder {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.5) 0 8px, rgba(255,255,255,0.25) 8px 16px);
+}

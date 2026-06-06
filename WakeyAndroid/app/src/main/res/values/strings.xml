@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">夢遊 Wakey</string>
+    <string name="alarm_channel_name">鬧鐘響鈴</string>
+    <string name="alarm_channel_desc">鬧鐘觸發時的通知與響鈴</string>
+    <string name="fcm_channel_name">好友喚醒</string>
+    <string name="fcm_channel_desc">好友或群組發來的喚醒通知</string>
+    <string name="notification_alarm_title">⏰ 起床時間到！</string>
+    <string name="notification_alarm_text">點擊關閉鬧鐘</string>
+    <string name="notification_wake_title">🌅 朋友叫你起床！</string>
+
+    <!-- Google 登入用的 Web Client ID。
+         完成 Firebase Console 設定後，從新的 google-services.json 內
+         oauth_client 中 client_type=3 的 client_id 複製貼上（或 Console →
+         Authentication → Google → Web client ID）。未填入前登入無法運作。 -->
+    <string name="web_client_id" translatable="false">132888472142-4riapjmm4agq86o2iq3dcr5qgqcsnba7.apps.googleusercontent.com</string>
+</resources>
