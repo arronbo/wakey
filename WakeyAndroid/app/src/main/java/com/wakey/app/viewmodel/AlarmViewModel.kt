@@ -90,13 +90,15 @@ class AlarmViewModel @Inject constructor(
             }
 
             // 共用給群組（對每位成員）
+            // 走 memberUids（雲端權威清單），避免 memberIds 本機映射延遲／為空
+            // 導致對應不到成員、整個群組都收不到（與 GroupViewModel.wakeGroup 一致）
             alarm.sharedToGroupIds.forEach { groupId ->
                 val group = groupRepository.getById(groupId) ?: return@forEach
-                android.util.Log.d(TAG, "  group=${group.name} memberIds=${group.memberIds}")
-                group.memberIds.forEach { memberId ->
-                    val member = friendRepository.getById(memberId)
+                android.util.Log.d(TAG, "  group=${group.name} memberUids=${group.memberUids}")
+                group.memberUids.forEach { uid ->
+                    val member = friendRepository.getByUserId(uid)
                     if (member == null) {
-                        android.util.Log.w(TAG, "    memberId=$memberId not found locally"); return@forEach
+                        android.util.Log.w(TAG, "    uid=$uid not found locally"); return@forEach
                     }
                     val token = member.fcmToken
                     if (token.isNullOrBlank()) {
