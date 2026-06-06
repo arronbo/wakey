@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App icon 單色版（Android 13+ 主題圖示，系統自動上色） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF000000"
+        android:pathData="M38,28m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0z" />
+    <path android:fillColor="#FF000000"
+        android:pathData="M70,28m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0z" />
+    <path android:fillColor="#FF000000"
+        android:pathData="M33,82l-8,9a4,4 0 0,0 6,5l8,-9z" />
+    <path android:fillColor="#FF000000"
+        android:pathData="M75,82l8,9a4,4 0 0,1 -6,5l-8,-9z" />
+    <!-- 本體：用 evenodd 在錶面挖出指針，主題圖示下保留辨識度 -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M54,58m-27,0a27,27 0 1,0 54,0a27,27 0 1,0 -54,0z M52,58l-12,-11l5,-5l9,9z M52,58l9,-9l5,4l-12,11z" />
+</vector>

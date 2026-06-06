@@ -174,12 +174,34 @@ fun HomeScreen(
     val nearbyHouse = houses.firstOrNull { it.friend.id == nearbyId }
     val night = WColors.isDark
 
-    Box(modifier = Modifier.fillMaxSize().background(
-        if (night) Color(0xFF1C2A22) else Color(0xFFA8D4A0)
-    )) {
+    // 世界天空/草地漸層色階（世界與背景共用，確保地平線位置一致）
+    val skyStops = if (night) arrayOf(
+        0.0f to Color(0xFF241B3D),
+        0.30f to Color(0xFF34264E),
+        0.30f to Color(0xFF24382A),
+        1.0f to Color(0xFF1C2A22)
+    ) else arrayOf(
+        0.0f to Color(0xFFFFC4A8),
+        0.30f to Color(0xFFF4A8C4),
+        0.30f to Color(0xFFC7E1A8),
+        1.0f to Color(0xFFA8D4A0)
+    )
+    val worldBrush = Brush.verticalGradient(colorStops = skyStops)
+
+    Box(modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val scale = with(LocalDensity.current) { maxWidth.toPx() } /
+            // 多覆蓋 1px，避免浮點縮放在右緣留下接縫、露出後方底色
+            val scale = with(LocalDensity.current) { (maxWidth.toPx() + 1f) } /
                     with(LocalDensity.current) { WORLD_W.dp.toPx() }
+
+            // 全螢幕背景漸層：用「世界縮放後的高度」做對應，
+            // 讓地平線位置與世界完全一致 → 右緣/底部的接縫顏色與位置都吻合、看不出邊。
+            val worldVisualHeightPx = with(LocalDensity.current) { WORLD_H.dp.toPx() } * scale
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Brush.verticalGradient(colorStops = skyStops, startY = 0f, endY = worldVisualHeightPx))
+            )
 
             // ── 世界（依寬度縮放）─────────────────────────────────────
             Box(
@@ -189,19 +211,7 @@ fun HomeScreen(
                         scaleX = scale; scaleY = scale
                         transformOrigin = TransformOrigin(0f, 0f)
                     }
-                    .background(
-                        if (night) Brush.verticalGradient(
-                            0.0f to Color(0xFF241B3D),
-                            0.30f to Color(0xFF34264E),
-                            0.30f to Color(0xFF24382A),
-                            1.0f to Color(0xFF1C2A22)
-                        ) else Brush.verticalGradient(
-                            0.0f to Color(0xFFFFC4A8),
-                            0.30f to Color(0xFFF4A8C4),
-                            0.30f to Color(0xFFC7E1A8),
-                            1.0f to Color(0xFFA8D4A0)
-                        )
-                    )
+                    .background(worldBrush)
             ) {
                 // 太陽 / 月亮
                 Box(

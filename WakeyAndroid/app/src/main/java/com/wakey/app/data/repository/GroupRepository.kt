@@ -5,6 +5,7 @@ package com.wakey.app.data.repository
 import com.google.firebase.auth.FirebaseAuth
 import com.wakey.app.data.local.dao.GroupDao
 import com.wakey.app.data.local.entity.GroupEntity
+import com.wakey.app.data.remote.AvatarStore
 import com.wakey.app.data.remote.FcmSender
 import com.wakey.app.data.remote.FirestoreUserDirectory
 import com.wakey.app.data.remote.RemoteGroup
@@ -22,6 +23,7 @@ class GroupRepository @Inject constructor(
     private val userProfileRepository: UserProfileRepository,
     private val directory: FirestoreUserDirectory,
     private val fcmSender: FcmSender,
+    private val avatarStore: AvatarStore,
     private val auth: FirebaseAuth
 ) {
     // 群組列表只顯示「已加入」的群組；被邀請尚未接受的歸通知頁
@@ -166,23 +168,42 @@ class GroupRepository @Inject constructor(
                     cloudId = entity.cloudId, ownerUid = entity.ownerUid,
                     name = entity.name, message = entity.message,
                     color = entity.color, memberUids = ownerInMembers,
-                    pendingUids = pending
+                    pendingUids = pending,
+                    // 把本機頭像編碼成 base64 上雲，讓所有成員共用
+                    photoBase64 = avatarStore.encodeForUpload(entity.photoUri)
                 )
             )
         }
     }
 
     // 雲端 → 本機
+    // 重要：以 cloudId 比對做 upsert，保留既有本機 id 與本機頭像（photoUri）。
+    // 早期版本是 deleteAll + 重新插入，會讓本機 id 每次同步都重新產生，
+    // 導致正開著的群組詳情頁（用舊 id 查詢）變成 null、頭像也被清空。
     suspend fun applyRemote(remotes: List<RemoteGroup>) {
         val myUid = auth.currentUser?.uid
-        dao.deleteAllMembers()
-        dao.deleteAllGroups()
+        val remoteCloudIds = remotes.map { it.cloudId }.toSet()
+
+        // 刪除本機已不存在於雲端的群組（只刪有 cloudId 者，保留未同步的本地暫存）
+        dao.getAll().forEach { local ->
+            if (local.cloudId.isNotBlank() && local.cloudId !in remoteCloudIds) {
+                dao.clearMembers(local.id)
+                dao.deleteGroupById(local.id)
+            }
+        }
+
         remotes.forEach { r ->
+            val existing = dao.getByCloudId(r.cloudId)
             val isJoined = myUid != null && r.memberUids.contains(myUid)
             val others = r.memberUids.filter { it != myUid }
+            // 群組頭像所有成員共用：把雲端 base64 解碼落地本機檔；
+            // 雲端沒有頭像時為 null（代表沒設定／已移除）。
+            val photoPath = avatarStore.saveIncoming("group_${r.cloudId}", r.photoBase64)
             val entity = GroupEntity(
-                id = 0, cloudId = r.cloudId, ownerUid = r.ownerUid,
-                name = r.name, message = r.message, color = r.color, photoUri = null,
+                id = existing?.id ?: 0L,            // 保留既有本機 id，不重新產生
+                cloudId = r.cloudId, ownerUid = r.ownerUid,
+                name = r.name, message = r.message, color = r.color,
+                photoUri = photoPath,               // 來自雲端的共用頭像
                 memberUidsJoined = others.joinToString(","),
                 pendingUidsJoined = r.pendingUids.joinToString(","),
                 isJoined = isJoined

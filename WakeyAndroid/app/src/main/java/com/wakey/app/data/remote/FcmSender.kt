@@ -60,6 +60,21 @@ class FcmSender @Inject constructor() {
         put("groupCloudId", groupCloudId)
     })
 
+    // 聊天訊息推播。groupName 非空代表群組訊息（通知顯示群名）。
+    suspend fun sendChatMessage(
+        targetToken: String,
+        senderName: String,
+        text: String,
+        conversationId: String,
+        groupName: String? = null
+    ): Boolean = sendMessage(targetToken, JSONObject().apply {
+        put("type", "chat_message")
+        put("senderName", senderName)
+        put("text", text)
+        put("conversationId", conversationId)
+        if (!groupName.isNullOrBlank()) put("groupName", groupName)
+    })
+
     suspend fun sendSharedAlarm(
         targetToken: String,
         alarm: Alarm,

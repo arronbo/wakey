@@ -108,9 +108,16 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
     }
 
-    // 解析 wakey://add-friend?uid=xxx / wakey://join-group?cloudId=xxx 寫入 manager
+    // 解析通知/連結帶進來的跳轉指示，寫入 manager
     private fun handleDeepLink(intent: android.content.Intent?) {
-        val data = intent?.data ?: return
+        if (intent == null) return
+        // 1. 點通知跳轉（FCM 通知 PendingIntent 帶的 extra）
+        when (intent.getStringExtra(EXTRA_NAV)) {
+            NAV_CHATS -> { pendingDeepLinkManager.set(PendingDeepLink.OpenChats); return }
+            NAV_NOTIFICATIONS -> { pendingDeepLinkManager.set(PendingDeepLink.OpenNotifications); return }
+        }
+        // 2. wakey:// 連結（加好友 / 加群組）
+        val data = intent.data ?: return
         if (data.scheme != "wakey") return
         when (data.host) {
             "add-friend" -> data.getQueryParameter("uid")?.takeIf { it.isNotBlank() }?.let {
@@ -124,4 +131,10 @@ class MainActivity : ComponentActivity() {
 
     private fun currentHour(): Int =
         java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+
+    companion object {
+        const val EXTRA_NAV = "wakey_nav"
+        const val NAV_CHATS = "chats"
+        const val NAV_NOTIFICATIONS = "notifications"
+    }
 }

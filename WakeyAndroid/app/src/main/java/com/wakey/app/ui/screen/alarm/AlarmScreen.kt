@@ -1,15 +1,22 @@
 // 鬧鐘列表畫面：完全對應 React 版 AlarmScreen + AlarmCard 的視覺設計
 package com.wakey.app.ui.screen.alarm
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,8 +25,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.wakey.app.domain.model.Alarm
 import com.wakey.app.domain.model.RepeatMode
 import com.wakey.app.ui.components.*
-import com.wakey.app.viewmodel.AlarmViewModel
 import java.util.concurrent.TimeUnit
+import com.wakey.app.viewmodel.AlarmViewModel
 
 @Composable
 fun AlarmScreen(
@@ -28,6 +35,16 @@ fun AlarmScreen(
     viewModel: AlarmViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // 多選模式：selectedIds 非空 = 進入選取模式
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+    val selectionMode = selectedIds.isNotEmpty()
+    var confirmDelete by remember { mutableStateOf(false) }
+    // 列表變動時，清掉已不存在的選取項
+    LaunchedEffect(state.alarms) {
+        val ids = state.alarms.map { it.id }.toSet()
+        selectedIds = selectedIds.intersect(ids)
+    }
 
     // 每秒更新一次，讓倒數能顯示實時秒數
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -64,13 +81,26 @@ fun AlarmScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "鬧鐘",
+                        text = if (selectionMode) "已選 ${selectedIds.size} 個" else "鬧鐘",
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         color = WColors.ink
                     )
-                    GlassIconButton(onClick = onAdd) {
-                        Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = WColors.ink)
+                    if (selectionMode) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // 刪除選取
+                            GlassIconButton(onClick = { confirmDelete = true }) {
+                                WakeyIcon(WIcon.trash, size = 20.dp, tint = Color(0xFFA0353A))
+                            }
+                            // 取消選取
+                            GlassIconButton(onClick = { selectedIds = emptySet() }) {
+                                WakeyIcon(WIcon.x, size = 20.dp, tint = WColors.ink)
+                            }
+                        }
+                    } else {
+                        GlassIconButton(onClick = onAdd) {
+                            Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = WColors.ink)
+                        }
                     }
                 }
             }
@@ -120,26 +150,63 @@ fun AlarmScreen(
             items(state.alarms, key = { it.id }) { alarm ->
                 AlarmCard(
                     alarm = alarm,
+                    selectionMode = selectionMode,
+                    selected = alarm.id in selectedIds,
                     onToggle = { viewModel.toggleAlarm(alarm.id, !alarm.enabled) },
-                    onClick = { onEdit(alarm.id) }
+                    onClick = {
+                        if (selectionMode) {
+                            selectedIds = if (alarm.id in selectedIds)
+                                selectedIds - alarm.id else selectedIds + alarm.id
+                        } else onEdit(alarm.id)
+                    },
+                    onLongPress = { selectedIds = selectedIds + alarm.id }
                 )
             }
         }
     }
+
+    // 多選刪除確認
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("刪除鬧鐘？") },
+            text = { Text("確定要刪除已選的 ${selectedIds.size} 個鬧鐘嗎？此動作無法復原。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteAlarms(selectedIds)
+                    selectedIds = emptySet()
+                    confirmDelete = false
+                }) {
+                    Text("刪除", color = Color(0xFFA0353A), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("取消") }
+            }
+        )
+    }
 }
 
 // ── 鬧鐘卡片（對應 React AlarmCard）─────────────────────────────────────
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AlarmCard(
     alarm: Alarm,
+    selectionMode: Boolean,
+    selected: Boolean,
     onToggle: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (!alarm.enabled) Modifier.then(Modifier) else Modifier),
-        onClick = onClick
+            .combinedClickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+                onLongClick = onLongPress
+            )
     ) {
         Box(modifier = if (!alarm.enabled) Modifier.fillMaxWidth().background(Color.Transparent) else Modifier.fillMaxWidth()) {
             Row(
@@ -195,12 +262,26 @@ private fun AlarmCard(
                     }
                 }
 
-                // 自訂 Toggle
-                WakeToggle(
-                    checked = alarm.enabled,
-                    onCheckedChange = { onToggle() },
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                )
+                if (selectionMode) {
+                    // 選取圓圈（取代 Toggle）
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(if (selected) WColors.accent else WColors.ink.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selected) WakeyIcon(WIcon.check, size = 16.dp, tint = Color.White)
+                    }
+                } else {
+                    // 自訂 Toggle
+                    WakeToggle(
+                        checked = alarm.enabled,
+                        onCheckedChange = { onToggle() },
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                }
             }
             // 停用時加半透明遮罩
             if (!alarm.enabled) {
@@ -208,6 +289,15 @@ private fun AlarmCard(
                     modifier = Modifier
                         .matchParentSize()
                         .background(Color.White.copy(alpha = 0.35f))
+                )
+            }
+            // 選取時加珊瑚色高亮邊框
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(WColors.accent.copy(alpha = 0.12f))
                 )
             }
         }

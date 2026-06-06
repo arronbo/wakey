@@ -93,6 +93,12 @@ fun GroupScreen(
                 GroupCard(group) { onGroupClick(group.id) }
             }
         }
+
+        // SnackbarHost 放在主 Box 內（對齊底部），不再用整頁覆蓋層，避免擋住卡片點擊
+        SnackbarHost(
+            snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 110.dp)
+        )
     }
 
     if (showCreate) {
@@ -123,13 +129,6 @@ fun GroupScreen(
                 showScan = false
             },
             onDismiss = { showScan = false }
-        )
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        SnackbarHost(
-            snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 110.dp)
         )
     }
 }

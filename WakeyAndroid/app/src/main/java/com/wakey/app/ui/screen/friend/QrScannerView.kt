@@ -15,20 +15,24 @@ import com.wakey.app.qr.QrCodeScanner
 fun QrScannerView(onResult: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var started by remember { mutableStateOf(false) }
+    val scanner = remember { mutableStateOf<QrCodeScanner?>(null) }
+
+    // 畫面離開時解除相機綁定，避免相機在背景續跑造成卡頓
+    DisposableEffect(Unit) {
+        onDispose { scanner.value?.stop(); scanner.value = null }
+    }
 
     Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
         AndroidView(
             factory = { ctx ->
                 PreviewView(ctx).also { previewView ->
-                    if (!started) {
-                        started = true
-                        QrCodeScanner(
+                    if (scanner.value == null) {
+                        scanner.value = QrCodeScanner(
                             context = context,
                             lifecycleOwner = lifecycleOwner,
                             previewView = previewView,
                             onResult = onResult
-                        ).start()
+                        ).also { it.start() }
                     }
                 }
             },

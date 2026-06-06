@@ -413,6 +413,7 @@ private fun NameSheet(value: String, onChange: (String) -> Unit) {
 private fun SoundSheet(value: String, onChange: (String) -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val opts = remember { com.wakey.app.alarm.SystemRingtones.list(ctx) }
+    val preview = rememberRingtonePreview()
     Text("鈴聲", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = WColors.ink,
         modifier = Modifier.padding(bottom = 12.dp))
     opts.forEach { opt ->
@@ -420,17 +421,36 @@ private fun SoundSheet(value: String, onChange: (String) -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onChange(opt.uri) }
-                .padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("♪", color = WColors.accent, fontSize = 16.sp)
-                Text(opt.title, fontSize = 16.sp, color = WColors.ink)
-            }
-            if (value == opt.uri) Text("✓", color = WColors.accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("♪", color = WColors.accent, fontSize = 16.sp)
+            Text(opt.title, fontSize = 16.sp, color = WColors.ink, modifier = Modifier.weight(1f))
+            if (value == opt.uri)
+                Text("✓", color = WColors.accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            RingtonePreviewButton(playing = preview.playingUri == opt.uri) { preview.toggle(opt.uri) }
         }
         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.Black.copy(alpha = 0.05f)))
+    }
+}
+
+// 試聽按鈕：播放時顯示暫停、未播放顯示播放
+@Composable
+private fun RingtonePreviewButton(playing: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(if (playing) WColors.accent else WColors.accent.copy(alpha = 0.14f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        WakeyIcon(
+            if (playing) WIcon.pause else WIcon.play,
+            size = 15.dp,
+            tint = if (playing) Color.White else WColors.accentDeep
+        )
     }
 }
 

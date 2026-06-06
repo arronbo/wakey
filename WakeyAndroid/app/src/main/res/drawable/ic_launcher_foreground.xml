@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App icon 前景：白色鬧鐘 + 珊瑚色指針，集中在 adaptive icon 安全區（中心 72dp）內 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 左右鬧鈴 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M38,28m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M70,28m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0z" />
+
+    <!-- 鬧鐘本體 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,58m-27,0a27,27 0 1,0 54,0a27,27 0 1,0 -54,0z" />
+
+    <!-- 兩隻腳 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M33,82l-8,9a4,4 0 0,0 6,5l8,-9z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M75,82l8,9a4,4 0 0,1 -6,5l-8,-9z" />
+
+    <!-- 錶面內圈（淡珊瑚） -->
+    <path
+        android:strokeColor="#33C2543A"
+        android:strokeWidth="2"
+        android:pathData="M54,58m-21,0a21,21 0 1,0 42,0a21,21 0 1,0 -42,0z" />
+
+    <!-- 指針（珊瑚色，指向 10:10） -->
+    <path
+        android:strokeColor="#FFFF8A6B"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,58L42,47" />
+    <path
+        android:strokeColor="#FFFF8A6B"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,58L65,49" />
+
+    <!-- 中心軸 -->
+    <path
+        android:fillColor="#FFC2543A"
+        android:pathData="M54,58m-3.5,0a3.5,3.5 0 1,0 7,0a3.5,3.5 0 1,0 -7,0z" />
+</vector>

@@ -54,8 +54,35 @@ service cloud.firestore {
                         && request.resource.data.name == resource.data.name
                         && request.resource.data.message == resource.data.message
                         && request.resource.data.color == resource.data.color
+                        && request.resource.data.photoBase64 == resource.data.photoBase64
                       )
                     );
+    }
+
+    // 聊天對話與訊息
+    //   conversations/{cid}
+    //       memberUids: List<String>   // 參與者（一對一兩人；群組為成員）
+    //   conversations/{cid}/messages/{mid}
+    // 規則：只有對話成員可讀寫；訊息的 senderUid 必須是自己
+    match /conversations/{cid} {
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.memberUids;
+      // 建立/更新對話文件：自己必須在成員清單內
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.memberUids;
+      allow update: if request.auth != null
+                    && (request.auth.uid in resource.data.memberUids
+                        || request.auth.uid in request.resource.data.memberUids);
+
+      match /messages/{mid} {
+        allow read: if request.auth != null
+                    && request.auth.uid in
+                       get(/databases/$(database)/documents/conversations/$(cid)).data.memberUids;
+        allow create: if request.auth != null
+                      && request.resource.data.senderUid == request.auth.uid
+                      && request.auth.uid in
+                         get(/databases/$(database)/documents/conversations/$(cid)).data.memberUids;
+      }
     }
 
     // 喚醒語音訊息（一次性，收件人讀取後刪除）

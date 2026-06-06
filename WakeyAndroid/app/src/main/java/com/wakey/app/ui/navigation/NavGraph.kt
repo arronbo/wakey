@@ -1,6 +1,10 @@
 // Navigation：定義所有畫面路徑與底部導航列
 package com.wakey.app.ui.navigation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,6 +28,9 @@ import com.wakey.app.ui.screen.alarm.AlarmEditScreen
 import com.wakey.app.ui.screen.alarm.AlarmScreen
 import com.wakey.app.ui.screen.friend.FriendProfileScreen
 import com.wakey.app.ui.screen.friend.FriendScreen
+import com.wakey.app.ui.screen.chat.ChatListScreen
+import com.wakey.app.ui.screen.chat.ChatScreen
+import com.wakey.app.domain.model.ChatType
 import com.wakey.app.ui.screen.group.GroupDetailScreen
 import com.wakey.app.ui.screen.group.GroupScreen
 import com.wakey.app.ui.screen.home.HomeScreen
@@ -51,12 +58,29 @@ sealed class Screen(val route: String, val label: String, val icon: String) {
     object GroupDetail : Screen("group/{groupId}", "群組", "") {
         fun route(id: Long) = "group/$id"
     }
+    object Chats : Screen("chats", "聊天", WIcon.messageCircle)
+    object Chat : Screen("chat?type={type}&id={id}", "對話", "") {
+        fun route(type: String, id: Long) = "chat?type=$type&id=$id"
+    }
     object Profile : Screen("profile", "我", WIcon.circleUser)
     object Settings : Screen("settings", "設定", "")
     object Notifications : Screen("notifications", "通知", "")
 }
 
-val bottomNavItems = listOf(Screen.Home, Screen.Alarm, Screen.Friends, Screen.Groups, Screen.Profile)
+val bottomNavItems =
+    listOf(Screen.Home, Screen.Alarm, Screen.Friends, Screen.Groups, Screen.Chats, Screen.Profile)
+
+// 把目前路由（含詳情頁）對應回所屬的底部分頁，讓詳情頁仍高亮母分頁
+private fun activeTabRoute(route: String?): String? = when {
+    route == null -> null
+    route.startsWith("alarm") -> Screen.Alarm.route          // alarm / alarm_edit
+    route == "friends" || route.startsWith("friend/") -> Screen.Friends.route
+    route == "groups" || route.startsWith("group/") -> Screen.Groups.route
+    route.startsWith("chat") -> Screen.Chats.route           // chats / chat
+    route == "profile" || route == "settings" || route == "notifications" -> Screen.Profile.route
+    route == "home" -> Screen.Home.route
+    else -> null
+}
 
 @Composable
 fun WakeyNavGraph() {
@@ -86,6 +110,16 @@ fun WakeyNavGraph() {
                     }
                 }
             }
+            is PendingDeepLink.OpenChats -> {
+                runCatching {
+                    navController.navigate(Screen.Chats.route) { launchSingleTop = true }
+                }
+            }
+            is PendingDeepLink.OpenNotifications -> {
+                runCatching {
+                    navController.navigate(Screen.Notifications.route) { launchSingleTop = true }
+                }
+            }
         }
         deepLinkVm.manager.consume()
     }
@@ -95,7 +129,12 @@ fun WakeyNavGraph() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            // 純淡入淡出，無方向、無縮放，維持 300ms 的節奏。
+            enterTransition = { fadeIn(tween(300, easing = FastOutSlowInEasing)) },
+            exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) },
+            popEnterTransition = { fadeIn(tween(300, easing = FastOutSlowInEasing)) },
+            popExitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(navController)
@@ -126,9 +165,11 @@ fun WakeyNavGraph() {
                 Screen.FriendProfile.route,
                 arguments = listOf(navArgument("friendId") { type = NavType.LongType })
             ) { back ->
+                val fid = back.arguments!!.getLong("friendId")
                 FriendProfileScreen(
-                    friendId = back.arguments!!.getLong("friendId"),
-                    onBack = { navController.popBackStack() }
+                    friendId = fid,
+                    onBack = { navController.popBackStack() },
+                    onMessage = { navController.navigate(Screen.Chat.route("direct", fid)) }
                 )
             }
             composable(Screen.Groups.route) {
@@ -140,10 +181,33 @@ fun WakeyNavGraph() {
                 Screen.GroupDetail.route,
                 arguments = listOf(navArgument("groupId") { type = NavType.LongType })
             ) { back ->
+                val gid = back.arguments!!.getLong("groupId")
                 GroupDetailScreen(
-                    groupId = back.arguments!!.getLong("groupId"),
+                    groupId = gid,
                     onBack = { navController.popBackStack() },
-                    onMemberClick = { id -> navController.navigate(Screen.FriendProfile.route(id)) }
+                    onMemberClick = { id -> navController.navigate(Screen.FriendProfile.route(id)) },
+                    onOpenChat = { navController.navigate(Screen.Chat.route("group", gid)) }
+                )
+            }
+            composable(Screen.Chats.route) {
+                ChatListScreen(
+                    onOpenChat = { type, localId ->
+                        val t = if (type == ChatType.GROUP) "group" else "direct"
+                        navController.navigate(Screen.Chat.route(t, localId))
+                    }
+                )
+            }
+            composable(
+                Screen.Chat.route,
+                arguments = listOf(
+                    navArgument("type") { type = NavType.StringType; defaultValue = "direct" },
+                    navArgument("id") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) { back ->
+                val typeArg = back.arguments?.getString("type") ?: "direct"
+                ChatScreen(
+                    chatType = if (typeArg == "group") ChatType.GROUP else ChatType.DIRECT,
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Profile.route) {
@@ -160,12 +224,15 @@ fun WakeyNavGraph() {
             }
         }
 
-        // 底部浮動導覽列（避開系統導覽列）
+        // 底部浮動導覽列（避開系統導覽列）。對話頁（聊天輸入列釘在底部）不顯示，避免重疊。
         run {
             val c = WColors
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDest = navBackStackEntry?.destination
-            Box(
+            val currentRoute = currentDest?.route
+            val activeTab = activeTabRoute(currentRoute)
+            val hideBottomNav = currentDest?.hierarchy?.any { it.route == Screen.Chat.route } == true
+            if (!hideBottomNav) Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -183,7 +250,7 @@ fun WakeyNavGraph() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     bottomNavItems.forEach { screen ->
-                        val selected = currentDest?.hierarchy?.any { it.route == screen.route } == true
+                        val selected = activeTab == screen.route
                         val tint = if (selected) c.accent else c.inkSoft
                         Column(
                             modifier = Modifier

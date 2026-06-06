@@ -22,11 +22,13 @@ class QrCodeScanner(
     private val executor = Executors.newSingleThreadExecutor()
     private val scanner = BarcodeScanning.getClient()
     private var alreadyFound = false
+    private var cameraProvider: ProcessCameraProvider? = null
 
     fun start() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             val provider = cameraProviderFuture.get()
+            cameraProvider = provider
 
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
@@ -52,6 +54,14 @@ class QrCodeScanner(
                 onError(e)
             }
         }, ContextCompat.getMainExecutor(context))
+    }
+
+    // 停止掃描：解除相機綁定並釋放資源（畫面關閉時務必呼叫，否則相機會在背景續跑）
+    fun stop() {
+        runCatching { cameraProvider?.unbindAll() }
+        cameraProvider = null
+        runCatching { scanner.close() }
+        runCatching { executor.shutdown() }
     }
 
     @androidx.camera.core.ExperimentalGetImage

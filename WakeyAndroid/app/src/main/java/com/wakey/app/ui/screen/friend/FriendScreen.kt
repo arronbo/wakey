@@ -5,6 +5,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,10 +34,14 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wakey.app.domain.model.Friend
 import com.wakey.app.qr.QrCodeGenerator
+import com.wakey.app.qr.QrShareUtil
+import com.wakey.app.qr.extractFriendUid
+import com.wakey.app.qr.scanQrFromImage
 import com.wakey.app.ui.components.*
 import com.wakey.app.viewmodel.AddFriendResult
 import com.wakey.app.viewmodel.FriendViewModel
 import com.wakey.app.viewmodel.ProfileViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun FriendScreen(
@@ -260,9 +265,43 @@ private fun AddFriendSheet(
                     Text("請朋友掃描以加為好友", fontSize = 12.sp, color = WColors.inkSoft,
                         modifier = Modifier.padding(top = 12.dp))
 
-                    // 分享連結（傳給沒同框的朋友）
                     val ctx = LocalContext.current
-                    Spacer(Modifier.height(12.dp))
+                    val scope = rememberCoroutineScope()
+                    Spacer(Modifier.height(16.dp))
+
+                    // 下載 QR / 分享 QR 圖片
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        QrActionChip(
+                            icon = WIcon.download,
+                            label = "下載 QR",
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val ok = QrShareUtil.saveToGallery(ctx, qr, "wakey-qr-$userHandle")
+                            scope.launch {
+                                android.widget.Toast.makeText(
+                                    ctx,
+                                    if (ok) "已儲存到相簿" else "儲存失敗",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                        QrActionChip(
+                            icon = WIcon.image,
+                            label = "分享 QR",
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            QrShareUtil.shareImage(
+                                ctx, qr, "wakey-qr-$userHandle", "分享我的 QR",
+                                text = "$userName 邀請你加為 Wakey 好友！掃描這張 QR Code 加我。"
+                            )
+                        }
+                    }
+
+                    // 分享連結（傳給沒同框、無法掃 QR 的朋友）
+                    Spacer(Modifier.height(10.dp))
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
@@ -303,6 +342,7 @@ private fun AddFriendSheet(
 @Composable
 private fun ScanTab(onScanResult: (String) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var granted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -313,6 +353,26 @@ private fun ScanTab(onScanResult: (String) -> Unit) {
         ActivityResultContracts.RequestPermission()
     ) { granted = it }
     LaunchedEffect(Unit) { if (!granted) launcher.launch(Manifest.permission.CAMERA) }
+
+    // 從相簿選照片辨識 QR
+    var scanning by remember { mutableStateOf(false) }
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scanning = true
+        scope.launch {
+            val raw = scanQrFromImage(context, uri)
+            scanning = false
+            if (raw != null) {
+                onScanResult(extractFriendUid(raw))
+            } else {
+                android.widget.Toast.makeText(
+                    context, "照片中找不到 QR Code", android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -325,12 +385,61 @@ private fun ScanTab(onScanResult: (String) -> Unit) {
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFF1B1730))
             ) {
-                QrScannerView(onResult = onScanResult)
+                QrScannerView(onResult = { onScanResult(extractFriendUid(it)) })
             }
             Text("對準朋友的 QR Code", fontSize = 14.sp, color = WColors.inkSoft,
                 modifier = Modifier.padding(top = 12.dp))
         } else {
             Text("需要相機權限才能掃描", fontSize = 14.sp, color = WColors.inkSoft)
         }
+
+        // 從相簿選照片（不需要相機）
+        Spacer(Modifier.height(16.dp))
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(WColors.accent.copy(alpha = 0.14f))
+                .clickable(enabled = !scanning) {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (scanning) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+            } else {
+                WakeyIcon(WIcon.image, size = 14.dp, tint = WColors.accentDeep)
+            }
+            Text(
+                if (scanning) "辨識中…" else "從相簿選擇 QR 照片",
+                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = WColors.accentDeep
+            )
+        }
+    }
+}
+
+// 下載 / 分享 QR 的動作按鈕
+@Composable
+private fun QrActionChip(
+    icon: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(WColors.ink.copy(alpha = 0.06f))
+            .clickable(onClick = onClick)
+            .padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        WakeyIcon(icon, size = 16.dp, tint = WColors.ink)
+        Spacer(Modifier.width(6.dp))
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = WColors.ink)
     }
 }

@@ -55,7 +55,8 @@ data class RemoteGroup(
     val message: String,
     val color: String?,
     val memberUids: List<String>,
-    val pendingUids: List<String> = emptyList()
+    val pendingUids: List<String> = emptyList(),
+    val photoBase64: String? = null   // 群組頭像（所有成員共用），256 JPEG base64
 )
 
 @Singleton
@@ -205,6 +206,7 @@ class FirestoreUserDirectory @Inject constructor(
                 "color" to g.color,
                 "memberUids" to g.memberUids,
                 "pendingUids" to g.pendingUids,
+                "photoBase64" to g.photoBase64,
                 "updatedAt" to FieldValue.serverTimestamp()
             )
         ).await()
@@ -321,7 +323,8 @@ class FirestoreUserDirectory @Inject constructor(
         message = getString("message") ?: "",
         color = getString("color"),
         memberUids = (get("memberUids") as? List<String>) ?: emptyList(),
-        pendingUids = (get("pendingUids") as? List<String>) ?: emptyList()
+        pendingUids = (get("pendingUids") as? List<String>) ?: emptyList(),
+        photoBase64 = getString("photoBase64")
     )
 
     // ── 喚醒語音訊息（臨時，一次性） ──────────────────────────────────

@@ -40,6 +40,7 @@ fun GroupDetailScreen(
     groupId: Long,
     onBack: () -> Unit,
     onMemberClick: (Long) -> Unit,
+    onOpenChat: () -> Unit = {},
     viewModel: GroupViewModel = hiltViewModel(),
     friendViewModel: FriendViewModel = hiltViewModel()
 ) {
@@ -147,8 +148,25 @@ fun GroupDetailScreen(
                 }
             }
 
-            // ── 動作按鈕區（QR / 錄音 / 起床） ────────────────────────
+            // ── 動作按鈕區（聊天 / QR / 錄音 / 起床） ────────────────────────
             item { Spacer(Modifier.height(4.dp)) }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(WColors.accent.copy(alpha = 0.12f))
+                        .clickable(onClick = onOpenChat)
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    WakeyIcon(WIcon.messageCircle, size = 16.dp, tint = WColors.accentDeep)
+                    Spacer(Modifier.size(8.dp))
+                    Text("群組聊天", fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold, color = WColors.accentDeep)
+                }
+            }
             item {
                 Row(
                     modifier = Modifier

@@ -10,6 +10,9 @@ import javax.inject.Singleton
 sealed class PendingDeepLink {
     data class AddFriend(val uid: String) : PendingDeepLink()
     data class JoinGroup(val cloudId: String) : PendingDeepLink()
+    // 點通知跳轉：開聊天列表 / 開通知頁
+    object OpenChats : PendingDeepLink()
+    object OpenNotifications : PendingDeepLink()
 }
 
 @Singleton

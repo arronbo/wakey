@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.wakey.app.MainActivity
 import com.wakey.app.R
 import com.wakey.app.alarm.AlarmForegroundService
 import com.wakey.app.alarm.AlarmReceiver
@@ -43,6 +44,7 @@ class WakeyFirebaseMessagingService : FirebaseMessagingService() {
         const val TYPE_WAKE = "wake"          // 群組起床喚醒
         const val TYPE_SHARE_ALARM = "share_alarm" // 共用鬧鐘
         const val TYPE_GROUP_INVITE = "group_invite"
+        const val TYPE_CHAT = "chat_message"  // 聊天訊息
     }
 
     override fun onNewToken(token: String) {
@@ -58,7 +60,43 @@ class WakeyFirebaseMessagingService : FirebaseMessagingService() {
             TYPE_WAKE -> handleWake(data)
             TYPE_SHARE_ALARM -> handleSharedAlarm(data)
             TYPE_GROUP_INVITE -> handleGroupInvite(data)
+            TYPE_CHAT -> handleChatMessage(data)
         }
+    }
+
+    // 建立點通知後跳轉到指定頁的 PendingIntent
+    private fun navPendingIntent(navTarget: String, requestCode: Int): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(MainActivity.EXTRA_NAV, navTarget)
+        }
+        return PendingIntent.getActivity(
+            this, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    // 聊天訊息通知：點擊開 App 並跳到聊天列表
+    private fun handleChatMessage(data: Map<String, String>) {
+        val senderName = data["senderName"] ?: "朋友"
+        val text = data["text"] ?: ""
+        val groupName = data["groupName"]
+        val title = if (!groupName.isNullOrBlank()) groupName else senderName
+        val body = if (!groupName.isNullOrBlank()) "$senderName：$text" else text
+        createFcmChannel()
+        val openIntent = navPendingIntent(MainActivity.NAV_CHATS, (data["conversationId"] ?: "chat").hashCode())
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .setContentIntent(openIntent)
+            .build()
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        // 同一對話用固定 id 取代舊通知，避免洗版
+        val tag = data["conversationId"] ?: "chat"
+        nm.notify(tag, 1, notification)
     }
 
     // 群組邀請通知：彈出系統通知，點擊開 App（進通知頁）
@@ -66,11 +104,7 @@ class WakeyFirebaseMessagingService : FirebaseMessagingService() {
         val senderName = data["senderName"] ?: "朋友"
         val groupName = data["groupName"] ?: "群組"
         createFcmChannel()
-        val openIntent = PendingIntent.getActivity(
-            this, 0,
-            packageManager.getLaunchIntentForPackage(packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val openIntent = navPendingIntent(MainActivity.NAV_NOTIFICATIONS, "group_invite".hashCode())
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("群組邀請")
@@ -170,11 +204,7 @@ class WakeyFirebaseMessagingService : FirebaseMessagingService() {
     private fun showSharedAlarmNotification(sender: String, hour: Int, minute: Int, label: String) {
         createFcmChannel()
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val openIntent = PendingIntent.getActivity(
-            this, 0,
-            packageManager.getLaunchIntentForPackage(packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val openIntent = navPendingIntent(MainActivity.NAV_NOTIFICATIONS, "share_alarm".hashCode())
         val body = "$sender 想共用 %02d:%02d 鬧鐘給你%s".format(
             hour, minute, if (label.isNotBlank()) "（$label）" else ""
         )

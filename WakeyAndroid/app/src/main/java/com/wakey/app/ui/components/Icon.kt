@@ -58,6 +58,11 @@ object WIcon {
     const val trash = "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"
     // 圓圈內單人，用於「我」分頁，與 users（兩人）區分
     const val circleUser = "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6M7.7 18.4A4 4 0 0 1 12 15a4 4 0 0 1 4.3 3.4"
+    const val download = "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"
+    const val send = "M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"
+    const val play = "M6 4l14 8-14 8z"
+    const val pause = "M8 5v14M16 5v14"
+    const val image = "M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 15l-5-5L5 21"
 }
 
 @Composable

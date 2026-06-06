@@ -463,6 +463,7 @@ private fun DefaultAlarmSheet(
     var rt by remember { mutableStateOf(ringtone) }
     var vb by remember { mutableStateOf(vibrate) }
     val opts = remember { com.wakey.app.alarm.SystemRingtones.list(ctx) }
+    val preview = rememberRingtonePreview()
 
     WakeyBottomSheet(onDismiss = onDismiss) {
         Row(
@@ -506,16 +507,28 @@ private fun DefaultAlarmSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { rt = o.uri }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        WakeyIcon(WIcon.music, size = 16.dp, tint = WColors.accent)
-                        Text(o.title, fontSize = 14.sp, color = WColors.ink)
-                    }
+                    WakeyIcon(WIcon.music, size = 16.dp, tint = WColors.accent)
+                    Text(o.title, fontSize = 14.sp, color = WColors.ink, modifier = Modifier.weight(1f))
                     if (rt == o.uri) WakeyIcon(WIcon.check, size = 18.dp, tint = WColors.accent)
+                    val playing = preview.playingUri == o.uri
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(if (playing) WColors.accent else WColors.accent.copy(alpha = 0.14f))
+                            .clickable { preview.toggle(o.uri) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        WakeyIcon(
+                            if (playing) WIcon.pause else WIcon.play,
+                            size = 15.dp,
+                            tint = if (playing) Color.White else WColors.accentDeep
+                        )
+                    }
                 }
             }
         }

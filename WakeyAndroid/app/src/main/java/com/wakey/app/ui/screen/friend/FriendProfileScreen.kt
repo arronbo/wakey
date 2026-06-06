@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 fun FriendProfileScreen(
     friendId: Long,
     onBack: () -> Unit,
+    onMessage: () -> Unit = {},
     viewModel: FriendViewModel = hiltViewModel(),
     profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -198,7 +199,7 @@ fun FriendProfileScreen(
                 GlassIconButton(onClick = onBack) {
                     WakeyIcon(WIcon.chevronLeft, size = 22.dp, tint = WColors.ink)
                 }
-                GlassIconButton(onClick = {}) {
+                GlassIconButton(onClick = onMessage) {
                     WakeyIcon(WIcon.messageCircle, size = 20.dp, tint = WColors.ink)
                 }
             }

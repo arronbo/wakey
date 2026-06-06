@@ -126,6 +126,13 @@ class AlarmViewModel @Inject constructor(
         viewModelScope.launch { alarmRepository.delete(id) }
     }
 
+    // 批次刪除（長按多選用）
+    fun deleteAlarms(ids: Collection<Long>) {
+        viewModelScope.launch {
+            ids.forEach { alarmRepository.delete(it) }
+        }
+    }
+
     fun getAlarm(id: Long): Flow<Alarm?> = alarmRepository.alarms.map { list ->
         list.firstOrNull { it.id == id }
     }
