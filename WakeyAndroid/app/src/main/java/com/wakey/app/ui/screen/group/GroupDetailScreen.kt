@@ -330,7 +330,9 @@ fun GroupDetailScreen(
                             .clip(RoundedCornerShape(20.dp))
                             .background(WColors.accent.copy(alpha = 0.14f))
                             .clickable {
-                                val link = "wakey://join-group?cloudId=$cid"
+                                // 用 https 中轉頁，聊天 App 才會把連結變成可點；
+                                // 網頁再自動轉跳 wakey://join-group 喚起 App。
+                                val link = "https://arronbo.github.io/wakey/?type=group&cloudId=$cid"
                                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT,

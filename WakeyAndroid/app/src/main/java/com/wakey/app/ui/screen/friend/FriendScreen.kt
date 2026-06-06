@@ -268,7 +268,9 @@ private fun AddFriendSheet(
                             .clip(RoundedCornerShape(20.dp))
                             .background(WColors.accent.copy(alpha = 0.14f))
                             .clickable {
-                                val link = "wakey://add-friend?uid=$userId"
+                                // 用 https 中轉頁，聊天 App 才會把連結變成可點；
+                                // 網頁再自動轉跳 wakey://add-friend 喚起 App。
+                                val link = "https://arronbo.github.io/wakey/?type=friend&uid=$userId"
                                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT,

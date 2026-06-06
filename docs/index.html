@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wakey 邀請</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #FFE9DF 0%, #FFF6F0 45%, #EAF2FF 100%);
+      color: #2B2B33; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 360px; text-align: center;
+      background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.7); border-radius: 28px;
+      padding: 36px 28px; box-shadow: 0 18px 50px rgba(255,138,107,0.18);
+    }
+    .logo { font-size: 44px; }
+    h1 { font-size: 21px; margin: 14px 0 6px; }
+    p { font-size: 14px; line-height: 1.6; color: #6A6A75; margin: 0 0 22px; }
+    .btn {
+      display: block; width: 100%; padding: 14px 16px; margin: 10px 0;
+      border-radius: 16px; font-size: 15px; font-weight: 700;
+      text-decoration: none; border: none; cursor: pointer;
+    }
+    .btn-primary { background: #FF8A6B; color: #fff; }
+    .btn-ghost { background: rgba(43,43,51,0.06); color: #2B2B33; }
+    .hint { font-size: 12px; color: #9A9AA3; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">⏰</div>
+    <h1 id="title">開啟 Wakey…</h1>
+    <p id="desc">正在嘗試開啟 App，幫你加入。</p>
+    <a id="openBtn" class="btn btn-primary" href="#">開啟 Wakey</a>
+    <a id="dlBtn" class="btn btn-ghost"
+       href="https://github.com/arronbo/wakey/releases">還沒安裝？下載 Wakey</a>
+    <div class="hint">若按「開啟」沒反應，請先安裝 App 後再點一次邀請連結。</div>
+  </div>
+
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var type = q.get("type");
+      var deep = null, title = "Wakey 邀請", desc = "";
+
+      if (type === "friend") {
+        var uid = q.get("uid");
+        if (uid) {
+          deep = "wakey://add-friend?uid=" + encodeURIComponent(uid);
+          title = "加入為好友";
+          desc = "點下方按鈕開啟 Wakey，把對方加為好友。";
+        }
+      } else if (type === "group") {
+        var cid = q.get("cloudId");
+        if (cid) {
+          deep = "wakey://join-group?cloudId=" + encodeURIComponent(cid);
+          title = "加入群組";
+          desc = "點下方按鈕開啟 Wakey，加入這個群組。";
+        }
+      }
+
+      var titleEl = document.getElementById("title");
+      var descEl = document.getElementById("desc");
+      var openBtn = document.getElementById("openBtn");
+
+      if (!deep) {
+        titleEl.textContent = "連結無效";
+        descEl.textContent = "這個邀請連結不完整，請向邀請你的人重新索取。";
+        openBtn.style.display = "none";
+        return;
+      }
+
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+      openBtn.href = deep;
+      // 進頁就嘗試自動喚起 App（已安裝時直接打開）
+      setTimeout(function () { location.href = deep; }, 300);
+    })();
+  </script>
+</body>
+</html>
