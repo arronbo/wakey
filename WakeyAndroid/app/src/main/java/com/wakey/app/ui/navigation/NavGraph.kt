@@ -28,6 +28,7 @@ import com.wakey.app.ui.screen.alarm.AlarmEditScreen
 import com.wakey.app.ui.screen.alarm.AlarmScreen
 import com.wakey.app.ui.screen.friend.FriendProfileScreen
 import com.wakey.app.ui.screen.friend.FriendScreen
+import com.wakey.app.ui.screen.friend.UserProfileScreen
 import com.wakey.app.ui.screen.chat.ChatListScreen
 import com.wakey.app.ui.screen.chat.ChatScreen
 import com.wakey.app.domain.model.ChatType
@@ -54,6 +55,9 @@ sealed class Screen(val route: String, val label: String, val icon: String) {
     object FriendProfile : Screen("friend/{friendId}", "好友資料", "") {
         fun route(id: Long) = "friend/$id"
     }
+    object UserProfile : Screen("user/{uid}", "使用者", "") {
+        fun route(uid: String) = "user/$uid"
+    }
     object Groups : Screen("groups", "群組", WIcon.usersRound)
     object GroupDetail : Screen("group/{groupId}", "群組", "") {
         fun route(id: Long) = "group/$id"
@@ -74,7 +78,7 @@ val bottomNavItems =
 private fun activeTabRoute(route: String?): String? = when {
     route == null -> null
     route.startsWith("alarm") -> Screen.Alarm.route          // alarm / alarm_edit
-    route == "friends" || route.startsWith("friend/") -> Screen.Friends.route
+    route == "friends" || route.startsWith("friend/") || route.startsWith("user/") -> Screen.Friends.route
     route == "groups" || route.startsWith("group/") -> Screen.Groups.route
     route.startsWith("chat") -> Screen.Chats.route           // chats / chat
     route == "profile" || route == "settings" || route == "notifications" -> Screen.Profile.route
@@ -172,6 +176,12 @@ fun WakeyNavGraph() {
                     onMessage = { navController.navigate(Screen.Chat.route("direct", fid)) }
                 )
             }
+            composable(
+                Screen.UserProfile.route,
+                arguments = listOf(navArgument("uid") { type = NavType.StringType })
+            ) {
+                UserProfileScreen(onBack = { navController.popBackStack() })
+            }
             composable(Screen.Groups.route) {
                 GroupScreen(
                     onGroupClick = { id -> navController.navigate(Screen.GroupDetail.route(id)) }
@@ -186,6 +196,7 @@ fun WakeyNavGraph() {
                     groupId = gid,
                     onBack = { navController.popBackStack() },
                     onMemberClick = { id -> navController.navigate(Screen.FriendProfile.route(id)) },
+                    onUserClick = { uid -> navController.navigate(Screen.UserProfile.route(uid)) },
                     onOpenChat = { navController.navigate(Screen.Chat.route("group", gid)) }
                 )
             }

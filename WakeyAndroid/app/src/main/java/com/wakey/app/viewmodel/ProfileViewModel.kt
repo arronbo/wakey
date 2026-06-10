@@ -145,4 +145,12 @@ class ProfileViewModel @Inject constructor(
     fun setEarlyWakeTime(value: String?) {
         viewModelScope.launch { settingsDataStore.setEarlyWakeTime(value) }
     }
+
+    fun setCharacterSkin(value: String) {
+        viewModelScope.launch { settingsDataStore.setCharacterSkin(value) }
+    }
+
+    fun setHouseSkin(value: String) {
+        viewModelScope.launch { settingsDataStore.setHouseSkin(value) }
+    }
 }

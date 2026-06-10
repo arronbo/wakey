@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -46,6 +47,7 @@ fun SettingsScreen(
     var showTheme by remember { mutableStateOf(false) }
     var showWakeAudio by remember { mutableStateOf(false) }
     var showEarlyWake by remember { mutableStateOf(false) }
+    var showSkins by remember { mutableStateOf(false) }
 
     val isAnonymous by authViewModel.isAnonymous.collectAsState()
     val authUi by authViewModel.uiState.collectAsState()
@@ -128,6 +130,13 @@ fun SettingsScreen(
                 label = "主題顏色",
                 detail = themeModeLabel(settings.themeMode),
                 onClick = { showTheme = true }
+            )
+
+            SettingRow(
+                icon = { WakeyIcon(WIcon.usersRound, size = 18.dp, tint = WColors.accentDeep) },
+                label = "主頁外觀",
+                detail = "${skinName(Skins.characters, settings.characterSkin)} · ${skinName(Skins.houses, settings.houseSkin)}",
+                onClick = { showSkins = true }
             )
 
             val ctx = androidx.compose.ui.platform.LocalContext.current

@@ -26,7 +26,9 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.LIGHT,
     val defaultRingtone: String = "default",
     val defaultVibrate: Boolean = true,
-    val earlyWakeTime: String? = null    // "HH:mm"，使用者設定的「早起時間」（功能待定）
+    val earlyWakeTime: String? = null,   // "HH:mm"，使用者設定的「早起時間」（功能待定）
+    val characterSkin: String = "classic",  // 主頁小人外觀
+    val houseSkin: String = "classic"       // 主頁房子外觀
 )
 
 @Singleton
@@ -43,6 +45,8 @@ class SettingsDataStore @Inject constructor(
         val DEFAULT_RINGTONE = stringPreferencesKey("default_ringtone")
         val DEFAULT_VIBRATE = booleanPreferencesKey("default_vibrate")
         val EARLY_WAKE_TIME = stringPreferencesKey("early_wake_time")
+        val CHARACTER_SKIN = stringPreferencesKey("character_skin")
+        val HOUSE_SKIN = stringPreferencesKey("house_skin")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -61,7 +65,9 @@ class SettingsDataStore @Inject constructor(
                 themeMode = themeMode,
                 defaultRingtone = prefs[Keys.DEFAULT_RINGTONE] ?: "default",
                 defaultVibrate = prefs[Keys.DEFAULT_VIBRATE] ?: true,
-                earlyWakeTime = prefs[Keys.EARLY_WAKE_TIME]
+                earlyWakeTime = prefs[Keys.EARLY_WAKE_TIME],
+                characterSkin = prefs[Keys.CHARACTER_SKIN] ?: "classic",
+                houseSkin = prefs[Keys.HOUSE_SKIN] ?: "classic"
             )
         }
 
@@ -93,6 +99,16 @@ class SettingsDataStore @Inject constructor(
         pushSettings()
     }
 
+    suspend fun setCharacterSkin(value: String) {
+        context.dataStore.edit { it[Keys.CHARACTER_SKIN] = value }
+        pushSettings()
+    }
+
+    suspend fun setHouseSkin(value: String) {
+        context.dataStore.edit { it[Keys.HOUSE_SKIN] = value }
+        pushSettings()
+    }
+
     // ── 雲端同步 ───────────────────────────────────────────────────────
     suspend fun pushSettings() {
         val uid = auth.currentUser?.uid ?: return
@@ -105,7 +121,9 @@ class SettingsDataStore @Inject constructor(
                     "use24h" to s.use24hFormat,
                     "defaultRingtone" to s.defaultRingtone,
                     "defaultVibrate" to s.defaultVibrate,
-                    "earlyWakeTime" to s.earlyWakeTime
+                    "earlyWakeTime" to s.earlyWakeTime,
+                    "characterSkin" to s.characterSkin,
+                    "houseSkin" to s.houseSkin
                 )
             )
         }
@@ -124,6 +142,8 @@ class SettingsDataStore @Inject constructor(
             (remote["defaultRingtone"] as? String)?.let { prefs[Keys.DEFAULT_RINGTONE] = it }
             (remote["defaultVibrate"] as? Boolean)?.let { prefs[Keys.DEFAULT_VIBRATE] = it }
             (remote["earlyWakeTime"] as? String)?.let { prefs[Keys.EARLY_WAKE_TIME] = it }
+            (remote["characterSkin"] as? String)?.let { prefs[Keys.CHARACTER_SKIN] = it }
+            (remote["houseSkin"] as? String)?.let { prefs[Keys.HOUSE_SKIN] = it }
         }
     }
 }

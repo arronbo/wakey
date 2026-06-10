@@ -158,16 +158,23 @@ class GroupRepository @Inject constructor(
     private suspend fun pushFullGroup(entity: GroupEntity) {
         val members = entity.memberUidsJoined.toUidList()
         val pending = entity.pendingUidsJoined.toUidList()
-        // 確保 owner 自己也在 memberUids（owner 透過 whereArrayContains 訂閱）
-        val ownerInMembers = if (entity.ownerUid.isNotBlank() && entity.ownerUid !in members) {
-            members + entity.ownerUid
-        } else members
+        // entity.memberUidsJoined 存的是「排除自己後」的成員清單；推回雲端時必須補回：
+        //   1) owner（owner 透過 whereArrayContains 訂閱）
+        //   2) 自己（否則非群主存檔會把自己從 memberUids 移除，導致群組從自己這邊消失）
+        val myUid = auth.currentUser?.uid
+        var fullMembers = members
+        if (entity.ownerUid.isNotBlank() && entity.ownerUid !in fullMembers) {
+            fullMembers = fullMembers + entity.ownerUid
+        }
+        if (entity.isJoined && !myUid.isNullOrBlank() && myUid !in fullMembers) {
+            fullMembers = fullMembers + myUid
+        }
         runCatching {
             directory.pushGroup(
                 RemoteGroup(
                     cloudId = entity.cloudId, ownerUid = entity.ownerUid,
                     name = entity.name, message = entity.message,
-                    color = entity.color, memberUids = ownerInMembers,
+                    color = entity.color, memberUids = fullMembers,
                     pendingUids = pending,
                     // 把本機頭像編碼成 base64 上雲，讓所有成員共用
                     photoBase64 = avatarStore.encodeForUpload(entity.photoUri)

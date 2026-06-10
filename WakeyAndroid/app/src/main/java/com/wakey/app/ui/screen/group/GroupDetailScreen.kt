@@ -40,6 +40,7 @@ fun GroupDetailScreen(
     groupId: Long,
     onBack: () -> Unit,
     onMemberClick: (Long) -> Unit,
+    onUserClick: (String) -> Unit = {},
     onOpenChat: () -> Unit = {},
     viewModel: GroupViewModel = hiltViewModel(),
     friendViewModel: FriendViewModel = hiltViewModel()
@@ -128,11 +129,11 @@ fun GroupDetailScreen(
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                 )
             }
-            items(members, key = { it.id }) { member ->
-                MemberCard(
-                    member = member,
-                    isOwner = g?.ownerUid?.isNotBlank() == true && member.userId == g?.ownerUid
-                ) { onMemberClick(member.id) }
+            items(members, key = { it.uid }) { member ->
+                MemberCard(member = member) {
+                    if (member.isFriend && member.friendId != null) onMemberClick(member.friendId)
+                    else onUserClick(member.uid)
+                }
             }
 
             if (members.isEmpty() && g != null) {
@@ -442,7 +443,7 @@ fun GroupDetailScreen(
 }
 
 @Composable
-private fun MemberCard(member: Friend, isOwner: Boolean = false, onClick: () -> Unit) {
+private fun MemberCard(member: com.wakey.app.viewmodel.GroupMember, onClick: () -> Unit) {
     GlassCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -457,7 +458,7 @@ private fun MemberCard(member: Friend, isOwner: Boolean = false, onClick: () -> 
                 ) {
                     Text(member.name, fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold, color = WColors.ink)
-                    if (isOwner) {
+                    if (member.isOwner) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
@@ -469,22 +470,44 @@ private fun MemberCard(member: Friend, isOwner: Boolean = false, onClick: () -> 
                         }
                     }
                 }
-                Text("@${member.handle}", fontSize = 11.sp, color = WColors.inkSoft)
-            }
-            // 可喚醒狀態指示燈
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box(
-                    modifier = Modifier.size(8.dp).clip(CircleShape)
-                        .background(if (member.canWake) Color(0xFF7FD3B5) else Color(0xFFD88A8A))
-                )
                 Text(
-                    if (member.canWake) "可喚醒" else "勿擾",
-                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (member.canWake) Color(0xFF1F8A5B) else Color(0xFFA04040)
+                    if (member.handle.isNotBlank()) "@${member.handle}" else "點擊加好友",
+                    fontSize = 11.sp, color = WColors.inkSoft
                 )
+            }
+            if (member.isFriend) {
+                // 好友：可喚醒狀態指示燈
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.size(8.dp).clip(CircleShape)
+                            .background(if (member.canWake) Color(0xFF7FD3B5) else Color(0xFFD88A8A))
+                    )
+                    Text(
+                        if (member.canWake) "可喚醒" else "勿擾",
+                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        color = if (member.canWake) Color(0xFF1F8A5B) else Color(0xFFA04040)
+                    )
+                }
+            } else {
+                // 非好友：顯示加好友提示標籤
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(WColors.accent.copy(alpha = 0.14f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        WakeyIcon(WIcon.plus, size = 12.dp, tint = WColors.accentDeep)
+                        Text("加好友", fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold, color = WColors.accentDeep)
+                    }
+                }
             }
         }
     }

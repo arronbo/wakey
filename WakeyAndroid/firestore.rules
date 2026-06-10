@@ -45,18 +45,10 @@ service cloud.firestore {
                     && request.auth.uid in request.resource.data.memberUids;
       allow delete: if request.auth != null
                     && resource.data.ownerUid == request.auth.uid;
+      // 所有成員都能編輯群組（名稱/留言/顏色/頭像/成員），唯一限制：不能更換群主。
+      // 刪除群組仍只有 owner 可做（見上方 delete 規則）。
       allow update: if request.auth != null
-                    && (
-                      resource.data.ownerUid == request.auth.uid
-                      || (
-                        // 非 owner：核心欄位不變，只動 memberUids/pendingUids
-                        request.resource.data.ownerUid == resource.data.ownerUid
-                        && request.resource.data.name == resource.data.name
-                        && request.resource.data.message == resource.data.message
-                        && request.resource.data.color == resource.data.color
-                        && request.resource.data.photoBase64 == resource.data.photoBase64
-                      )
-                    );
+                    && request.resource.data.ownerUid == resource.data.ownerUid;
     }
 
     // 聊天對話與訊息

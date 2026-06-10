@@ -70,12 +70,18 @@ fun HomeScreen(
 
     val userColor = profileState.profile?.color ?: "#FF8A6B"
     val use24h = profileState.settings.use24hFormat
+    val characterSkin = profileState.settings.characterSkin
+    val houseSkin = profileState.settings.houseSkin
 
     var groupMode by remember { mutableStateOf<Long?>(null) }
-    val visibleFriends = remember(friendState.friends, groupState.groups, groupMode) {
+    val currentGroup = remember(groupState.groups, groupMode) {
+        groupMode?.let { gm -> groupState.groups.firstOrNull { it.id == gm } }
+    }
+    val visibleFriends = remember(friendState.friends, currentGroup, groupMode) {
         if (groupMode == null) friendState.friends
-        else groupState.groups.firstOrNull { it.id == groupMode }
-            ?.memberIds?.mapNotNull { id -> friendState.friends.firstOrNull { it.id == id } }
+        else currentGroup
+            // 用雲端權威的 memberUids 對好友（memberIds 本機映射常為空，會導致房子不見）
+            ?.memberUids?.mapNotNull { uid -> friendState.friends.firstOrNull { it.userId == uid } }
             ?: friendState.friends
     }
     val houses = remember(visibleFriends) {
@@ -246,13 +252,16 @@ fun HomeScreen(
                     }
                 }
 
-                // 傳送門
-                PortalVisual(active = portalActive)
+                // 傳送門（底下顯示目前所在群組）
+                PortalVisual(
+                    active = portalActive,
+                    scope = if (groupMode == null) "整個村莊" else (currentGroup?.name ?: "群組")
+                )
 
                 // 房子（依 y 排序，後面的蓋前面）
                 houses.sortedBy { it.y }.forEach { h ->
                     Box(modifier = Modifier.offset(h.x.dp, h.y.dp)) {
-                        Cottage(h.friend, knockingId == h.friend.id)
+                        CottageSkin(houseSkin, h.friend.color, h.friend.canWake, knockingId == h.friend.id)
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
@@ -291,7 +300,7 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier.offset((posX - 14).dp, (posY - 30).dp)
                 ) {
-                    Walker(userColor, facing, bobbing = knockingId != null)
+                    WalkerSkin(characterSkin, userColor, facing, bobbing = knockingId != null)
                     if (knockingId != null) {
                         Box(
                             modifier = Modifier
@@ -407,136 +416,13 @@ fun HomeScreen(
     }
 }
 
-// ── 卡通小屋 ──────────────────────────────────────────────────────────
-@Composable
-private fun Cottage(friend: Friend, knocking: Boolean) {
-    val wall = friend.color
-    val roof = shadeColor(wall, -25)
-    val doorColor = if (friend.canWake) Color(0xFF3B2A4A) else Color(0xFF5A4565)
-    Box(modifier = Modifier.size(100.dp, 130.dp)) {
-        // 牆身
-        Box(
-            modifier = Modifier
-                .offset(8.dp, 38.dp).size(84.dp, 88.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(Brush.verticalGradient(listOf(parseHexColor(wall), shadeColor(wall, -16))))
-        )
-        // 屋頂三角
-        androidx.compose.foundation.Canvas(
-            modifier = Modifier.offset(6.dp, 18.dp).size(92.dp, 30.dp)
-        ) {
-            val p = androidx.compose.ui.graphics.Path().apply {
-                moveTo(0f, size.height)
-                lineTo(size.width, size.height)
-                lineTo(size.width / 2f, 0f)
-                close()
-            }
-            drawPath(p, roof)
-        }
-        // 煙囪
-        Box(
-            modifier = Modifier.offset(70.dp, 8.dp).size(12.dp, 22.dp)
-                .background(shadeColor(wall, -37))
-        )
-        // 窗戶
-        Box(
-            modifier = Modifier
-                .offset(18.dp, 52.dp).size(20.dp, 18.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(
-                    if (friend.canWake) Color(0xFFFFE9A8) else Color.White.copy(alpha = 0.25f)
-                )
-        )
-        // 門（敲門時抖動）
-        val doorOffset by androidx.compose.animation.core.animateFloatAsState(
-            if (knocking) 2f else 0f,
-            animationSpec = androidx.compose.animation.core.repeatable(
-                6, androidx.compose.animation.core.tween(80)
-            ),
-            label = "door"
-        )
-        Box(
-            modifier = Modifier
-                .offset((46 + doorOffset).dp, 76.dp).size(26.dp, 48.dp)
-                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                .background(doorColor)
-        ) {
-            Box(
-                modifier = Modifier.align(Alignment.CenterEnd)
-                    .offset(x = (-4).dp).size(4.dp).clip(CircleShape)
-                    .background(Color(0xFFFFC857))
-            )
-        }
-        // 沉睡 Z
-        if (!friend.canWake) {
-            Text("Z", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(66.dp, 0.dp))
-            Text("z", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp,
-                fontWeight = FontWeight.Bold, modifier = Modifier.offset(58.dp, 10.dp))
-        }
-    }
-}
-
-// ── 小人 ──────────────────────────────────────────────────────────────
-@Composable
-private fun Walker(userColor: String, facing: String, bobbing: Boolean) {
-    val bob by androidx.compose.animation.core.animateFloatAsState(
-        if (bobbing) 2f else 0f,
-        animationSpec = androidx.compose.animation.core.repeatable(
-            10, androidx.compose.animation.core.tween(120)
-        ),
-        label = "bob"
-    )
-    Box(modifier = Modifier.size(28.dp, 36.dp).offset(y = bob.dp)) {
-        // 陰影
-        Box(
-            modifier = Modifier.align(Alignment.BottomCenter)
-                .size(20.dp, 6.dp).clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.25f))
-        )
-        // 身體
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter).offset(y = (-4).dp)
-                .size(20.dp, 14.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(WColors.accent)
-        )
-        // 頭
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(24.dp).clip(CircleShape)
-                .background(
-                    Brush.linearGradient(
-                        listOf(shadeColor(userColor, 18), parseHexColor(userColor))
-                    )
-                )
-        ) {
-            if (facing != "up") {
-                Box(
-                    modifier = Modifier
-                        .offset(x = if (facing == "left") 4.dp else 7.dp, y = 9.dp)
-                        .size(3.dp).clip(CircleShape).background(WColors.ink)
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = if (facing == "right") (-4).dp else (-7).dp, y = 9.dp)
-                        .size(3.dp).clip(CircleShape).background(WColors.ink)
-                )
-            }
-        }
-    }
-}
-
 // ── 傳送門 ────────────────────────────────────────────────────────────
 @Composable
-private fun PortalVisual(active: Boolean) {
+private fun PortalVisual(active: Boolean, scope: String) {
     Box(
         modifier = Modifier
             .offset((PORTAL_X - 35).dp, (PORTAL_Y - 45).dp)
-            .size(70.dp, 90.dp)
+            .size(70.dp, 110.dp)
     ) {
         Box(
             modifier = Modifier
@@ -558,14 +444,31 @@ private fun PortalVisual(active: Boolean) {
                 .size(24.dp).clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.9f))
         )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .clip(RoundedCornerShape(50))
-                .background(Color(0xFF1A1025).copy(alpha = 0.55f))
-                .padding(horizontal = 8.dp, vertical = 2.dp)
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("傳送門", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFF1A1025).copy(alpha = 0.55f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text("傳送門", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+            // 目前所在群組
+            Box(
+                modifier = Modifier
+                    .padding(top = 3.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(WColors.accent.copy(alpha = 0.92f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    scope, color = Color.White, fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold, maxLines = 1
+                )
+            }
         }
     }
 }
